@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Sunward Grove</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@700;800&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: phone = status strip → board → turn panel → hand & store → log; desktop = board left, panel column right */
+:root{
+  --bg:#e6ebe0; --surface:#f4f6ef; --surface-2:#dde4d5; --fg:#1c271f; --muted:#5a685c; --line:#c4cebd;
+  --accent:#c9820f; --accent-soft:#f6dfae; --accent-ink:#2b1a00;
+  --soil1:#d9d29f; --soil2:#b4bb78; --soil3:#7e9a54; --soil4:#4b7240; --pip:#1c271f;
+  --shade:rgba(18,30,34,.40); --board-edge:#3a5636;
+  --oak:#e3892a; --pine:#3b7db0; --birch:#f6f3e8; --maple:#c43a47;
+  --ink:#1a231c; --trunk:#5c4128; --sun:#f4b52f; --sun-ray:#f8cf6a;
+  --good:#2f7a45; --warn:#a2560e;
+  --font-display:"Alegreya SC", Georgia, "Times New Roman", serif;
+  --font-body:"Alegreya Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1612; --surface:#17211b; --surface-2:#1f2b23; --fg:#e1e9dc; --muted:#98a799; --line:#2c3b31;
+  --accent:#f0a93a; --accent-soft:#3d2c0f; --accent-ink:#1c1100;
+  --soil1:#aea877; --soil2:#8a9452; --soil3:#5f7d40; --soil4:#3a5c31; --pip:#0d140f;
+  --shade:rgba(0,0,0,.48); --board-edge:#24361f;
+  --ink:#0b110d; --trunk:#4d361f; --good:#5cbf7a; --warn:#e39a4c;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1612; --surface:#17211b; --surface-2:#1f2b23; --fg:#e1e9dc; --muted:#98a799; --line:#2c3b31;
+  --accent:#f0a93a; --accent-soft:#3d2c0f; --accent-ink:#1c1100;
+  --soil1:#aea877; --soil2:#8a9452; --soil3:#5f7d40; --soil4:#3a5c31; --pip:#0d140f;
+  --shade:rgba(0,0,0,.48); --board-edge:#24361f;
+  --ink:#0b110d; --trunk:#4d361f; --good:#5cbf7a; --warn:#e39a4c;
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:12px 32px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1180px;margin:0 auto;display:grid;gap:14px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-weight:800;font-size:1.65rem;letter-spacing:.02em;line-height:1;margin:0;flex:1 1 auto}
+.brand small{display:block;font-family:var(--font-body);font-weight:500;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.topbtns{display:flex;gap:8px}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500}
+.ghost:hover{background:var(--surface-2)}
+
+.status{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;font-size:.92rem;color:var(--muted)}
+.status b{color:var(--fg);font-variant-numeric:tabular-nums}
+.revs{display:flex;gap:5px;align-items:center}
+.revs i{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--accent);display:block}
+.revs i.done{background:var(--accent)}
+.steps{display:flex;gap:3px}
+.steps i{width:14px;height:4px;border-radius:2px;background:var(--line);display:block}
+.steps i.on{background:var(--accent)}
+
+.players{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.chip{flex:1 0 auto;min-width:128px;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);background:var(--surface);border:1.5px solid transparent;position:relative}
+.chip.active{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.chip .nm{font-weight:700;font-size:.92rem;line-height:1.1;white-space:nowrap}
+.chip .st{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;gap:9px;align-items:center}
+.chip .st span{display:inline-flex;align-items:center;gap:3px}
+.chip .firsttag{position:absolute;top:-7px;right:8px;background:var(--accent);color:var(--accent-ink);font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:999px}
+
+.main{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:880px){ .main{grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);align-items:start} }
+.boardwrap{position:relative;background:radial-gradient(ellipse at 50% 45%, color-mix(in srgb,var(--soil3) 30%,var(--surface)) 0%, var(--surface) 70%);border-radius:16px;padding:4px;min-width:0}
+#board{display:block;width:100%;height:auto;max-height:74vh;margin:0 auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.legend{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-size:.78rem;color:var(--muted);padding:2px 8px 8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+.side{display:grid;gap:12px;min-width:0}
+.panel{background:var(--surface);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0}
+.eyebrow{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.turnhead{display:flex;align-items:center;gap:10px}
+.turnhead h2{margin:0;font-family:var(--font-display);font-size:1.3rem;line-height:1.1;text-wrap:balance}
+.turnhead .grow1{flex:1;min-width:0}
+.lp{text-align:center;background:var(--accent-soft);border-radius:12px;padding:4px 12px;min-width:64px}
+.lp b{display:block;font-size:1.6rem;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--fg)}
+.lp span{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.hint{margin:0;color:var(--muted);font-size:.92rem}
+.cellcard{border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}
+.cc-title{font-weight:800}
+.btns{display:grid;gap:7px}
+.actwrap{display:grid;gap:2px}
+.actwrap small{color:var(--warn);font-size:.8rem;padding-left:4px}
+.btns button:not(.ghost),.primary{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;border-radius:10px;padding:10px 12px;background:var(--surface-2);font-weight:700;text-align:left}
+.btns button:not(.ghost):hover:not(:disabled){background:color-mix(in srgb,var(--accent) 22%,var(--surface-2))}
+button:disabled{opacity:.48;cursor:not-allowed}
+.cost{display:inline-flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap}
+.primary{background:var(--accent)!important;color:var(--accent-ink);justify-content:center!important;font-size:1.02rem;padding:12px!important}
+.primary:hover{filter:brightness(1.06)}
+.ico{width:14px;height:14px;display:inline-block;vertical-align:-2px}
+
+.tray{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.slot{background:var(--surface-2);border-radius:10px;padding:8px 4px 6px;display:grid;justify-items:center;gap:3px;text-align:center;min-width:0}
+.slot .sz{font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.slot .hand{font-size:.84rem}
+.slot .hand b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.slot .dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.slot .dots i{font-style:normal;font-size:.66rem;font-weight:800;width:16px;height:16px;line-height:14px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font-variant-numeric:tabular-nums}
+.slot .dots i.f{background:var(--fg);color:var(--surface);border-color:var(--fg)}
+.slot button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 6px;font-size:.8rem;font-weight:700;width:100%;display:flex;justify-content:center;gap:3px;align-items:center}
+.slot button:hover:not(:disabled){border-color:var(--accent)}
+.subnote{font-size:.8rem;color:var(--muted);margin:0}
+
+.log{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.86rem;color:var(--muted);max-height:180px;overflow:auto}
+.log li:first-child{color:var(--fg)}
+
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border-radius:16px;padding:20px;max-width:540px;width:100%;display:grid;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.modal h2{font-family:var(--font-display);margin:0;font-size:1.5rem;text-wrap:balance}
+.modal h3{margin:6px 0 0;font-size:1rem}
+.modal p,.modal li{margin:0;max-width:65ch}
+.modal ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px;font-weight:700}
+.seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seat{display:flex;gap:8px;align-items:center}
+.seat input[type=text]{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.seat .seg{flex:0 0 auto}
+.seat .seg button{padding:6px 10px;font-size:.85rem}
+label.opt{display:flex;gap:10px;align-items:flex-start;font-size:.95rem}
+label.opt input{margin-top:4px;accent-color:var(--accent)}
+label.opt small{display:block;color:var(--muted)}
+table.res{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.res th,table.res td{padding:7px 4px;text-align:right;border-bottom:1px solid var(--line)}
+table.res th:first-child,table.res td:first-child{text-align:left}
+table.res th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+table.res tr.win td{font-weight:800}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap}
+.rowbtns .primary{flex:1}
+
+/* svg */
+.cell{stroke:var(--board-edge);stroke-width:1.2;transition:filter .15s}
+.cell.can{cursor:pointer}
+.tgt{fill:none;stroke:var(--accent);stroke-width:3;stroke-dasharray:5 4;pointer-events:none;animation:dash 1.2s linear infinite}
+.selring{fill:none;stroke:var(--accent);stroke-width:3.5;pointer-events:none}
+.usedmark{fill:var(--fg);opacity:.55;pointer-events:none}
+.tree.dim{opacity:.7}
+.tree{cursor:pointer}
+.gain{font-family:var(--font-body);font-weight:800;font-size:15px;fill:var(--sun);stroke:var(--ink);stroke-width:3;paint-order:stroke;animation:rise 1.8s ease-out forwards;pointer-events:none}
+@keyframes rise{0%{opacity:0;transform:translateY(6px)}15%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translateY(-18px)}}
+@keyframes dash{to{stroke-dashoffset:-18}}
+.sunrays{animation:spin 40s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tgt,.sunrays{animation:none}.gain{animation-duration:2.4s}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <h1 class="brand">Sunward Grove<small>A forest of light and shade</small></h1>
+    <div class="topbtns">
+      <button class="ghost" data-act="rules">How to play</button>
+      <button class="ghost" data-act="newgame">New game</button>
+    </div>
+  </header>
+  <div class="status" id="status"></div>
+  <div class="players" id="players"></div>
+  <div class="main">
+    <div class="boardwrap">
+      <svg id="board" viewBox="-235 -212 470 424" role="img" aria-label="Forest board"><g id="layer"></g><g id="fx"></g></svg>
+      <div class="legend">
+        <span><i style="background:var(--soil1)"></i>1 leaf</span>
+        <span><i style="background:var(--soil2)"></i>2 leaves</span>
+        <span><i style="background:var(--soil3)"></i>3 leaves</span>
+        <span><i style="background:var(--soil4)"></i>4 leaves</span>
+        <span><i style="background:var(--shade)"></i>Shade this round</span>
+      </div>
+    </div>
+    <div class="side">
+      <section class="panel" id="turn"></section>
+      <section class="panel" id="hand"></section>
+      <section class="panel"><div class="eyebrow">Forest log</div><ul class="log" id="log"></ul></section>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="overlay" hidden><div class="modal" id="modal"></div></div>
+
+<script>
+(()=>{
+const S=30, R3=Math.sqrt(3);
+const DIRS=[[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]]; // clockwise on screen
+const SLOTS=[[1,1,2,2],[2,2,3,3],[3,3,4],[4,5]];
+const GROW=[1,2,3];
+const SIZE_NAME=['Seed','Small tree','Medium tree','Large tree'];
+const SIZE_SHORT=['Seed','Small','Medium','Large'];
+const SPECIES=[{name:'Oak',v:'--oak',shape:'round'},{name:'Pine',v:'--pine',shape:'cone'},{name:'Birch',v:'--birch',shape:'tall'},{name:'Maple',v:'--maple',shape:'star'}];
+const TOKENS={4:[22,21,20],3:[19,18,18,17,17],2:[17,16,16,14,14,13,13],1:[14,14,13,13,13,12,12,12,12]};
+const SAVE_KEY='sunward-grove-v1';
+const SUNI='<svg class="ico" viewBox="-10 -10 20 20" aria-hidden="true"><circle r="4.6" fill="var(--sun)" stroke="var(--ink)" stroke-width="1"/><g stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M0-9v2M0 7v2M-9 0h2M7 0h2M-6.4-6.4l1.4 1.4M5 5l1.4 1.4M-6.4 6.4l1.4-1.4M5-5l1.4-1.4"/></g></svg>';
+const STARI='<svg class="ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2l2.4 5 5.4.6-4 3.7 1.1 5.4L10 14l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" fill="var(--fg)" opacity=".75"/></svg>';
+
+const CELLS=[];
+for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++){const d=Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r));if(d<=3)CELLS.push({q,r,k:q+','+r,soil:4-d});}
+const CELL=Object.fromEntries(CELLS.map(c=>[c.k,c]));
+const key=(q,r)=>q+','+r;
+const dist=(a,b)=>(Math.abs(a.q-b.q)+Math.abs(a.r-b.r)+Math.abs(a.q+a.r-b.q-b.r))/2;
+const px=(q,r)=>[S*R3*(q+r/2),S*1.5*r];
+const HEX=(()=>{const p=[];for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);p.push([(S-1)*Math.cos(a),(S-1)*Math.sin(a)]);}return p;})();
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+let G=null, sel=null, gameId=0, busy=false;
+let ng={seats:[{name:'You',human:true},{name:'Pine bot',human:false},{name:'Birch bot',human:false}],long:false,shade:false};
+
+/* ---------- state ---------- */
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(G));}catch(e){}}
+function load(){try{const s=localStorage.getItem(SAVE_KEY);if(!s)return null;const g=JSON.parse(s);return g&&g.players&&g.trees?g:null;}catch(e){return null;}}
+function log(msg){G.log.unshift(msg);if(G.log.length>60)G.log.length=60;}
+const sunIdx=()=>(G.sunStart+G.round)%6;
+const P=i=>G.players[i];
+const spName=i=>SPECIES[P(i).sp].name;
+
+function newGame(cfg){
+  gameId++; busy=false; sel=null;
+  const n=cfg.seats.length, idx=[...Array(n).keys()];
+  G={cfg:JSON.parse(JSON.stringify(cfg)),
+    players:cfg.seats.map((s,i)=>({name:s.name||SPECIES[i].name,human:s.human,sp:i,lp:0,avail:[2,4,1,0],store:SLOTS.map(a=>a.map(()=>true)),tokens:[]})),
+    trees:{},round:0,total:cfg.long?24:18,sunStart:3,first:0,current:0,turnIdx:0,phase:'setup',
+    setupQ:[...idx,...idx],used:{},piles:JSON.parse(JSON.stringify(TOKENS)),log:[],result:null};
+  if(n===2)G.piles[4]=[];
+  G.current=G.setupQ[0];
+  log('Each grove places two small trees on the outer ring to begin.');
+  save(); render(); kick();
+}
+
+function kick(){
+  if(!G||G.phase==='over')return;
+  const p=P(G.current); if(p.human)return;
+  if(G.phase==='setup'){const id=gameId;setTimeout(()=>{if(id===gameId&&G.phase==='setup'&&!P(G.current).human)placeSetup(botSetupPick());},600);}
+  else runBot();
+}
+
+/* ---------- rules engine ---------- */
+function nextCost(p,s){const i=p.store[s].indexOf(true);return i<0?null:SLOTS[s][i];}
+function returnPiece(p,s){const a=p.store[s];for(let i=a.length-1;i>=0;i--)if(!a[i]){a[i]=true;return true;}return false;}
+function shadowed(k,size){ // is a piece of `size` at k blocked from the sun?
+  const c=CELL[k],[dq,dr]=DIRS[sunIdx()];
+  for(let d=1;d<=3;d++){const t=G.trees[key(c.q+dq*d,c.r+dr*d)];if(t&&t.size>=1&&t.size>=d&&t.size>=size)return true;}
+  return false;
+}
+function shadeCells(){const out=new Set(),[dq,dr]=DIRS[sunIdx()];
+  for(const[k,t]of Object.entries(G.trees)){if(t.size<1)continue;const c=CELL[k];for(let d=1;d<=t.size;d++){const kk=key(c.q-dq*d,c.r-dr*d);if(CELL[kk])out.add(kk);}}
+  return out;}
+function peekToken(soil){for(let s=soil;s>=1;s--)if(G.piles[s].length)return G.piles[s][0];return 0;}
+function takeToken(soil){for(let s=soil;s>=1;s--)if(G.piles[s].length)return G.piles[s].shift();return 0;}
+
+function growWhy(pi,k){const p=P(pi),t=G.trees[k];
+  if(G.used[k])return 'This space was already used this turn.';
+  if(t.size>=3)return 'Already fully grown.';
+  if(p.avail[t.size+1]<=0)return `No ${SIZE_SHORT[t.size+1].toLowerCase()} tree in hand. Buy one below.`;
+  if(p.lp<GROW[t.size])return `Needs ${GROW[t.size]} light.`;
+  if(G.cfg.shade&&shadowed(k,t.size))return 'In shade, so it cannot grow (shade rule).';
+  return null;}
+function plantTargets(src){const t=G.trees[src],c=CELL[src];
+  return CELLS.filter(x=>!G.trees[x.k]&&!G.used[x.k]&&dist(c,x)<=t.size&&!(G.cfg.shade&&shadowed(x.k,0))).map(x=>x.k);}
+function plantWhy(pi,k){const p=P(pi);
+  if(G.used[k])return 'This tree was already used this turn.';
+  if(p.avail[0]<=0)return 'No seeds in hand. Buy one below.';
+  if(p.lp<1)return 'Needs 1 light.';
+  if(!plantTargets(k).length)return 'No open space within reach.';
+  return null;}
+function collectWhy(pi,k){if(G.used[k])return 'This space was already used this turn.';if(P(pi).lp<4)return 'Needs 4 light.';return null;}
+
+function doBuy(pi,s){const p=P(pi),c=nextCost(p,s);if(c==null||p.lp<c)return;
+  p.store[s][p.store[s].indexOf(true)]=false;p.avail[s]++;p.lp-=c;
+  log(`${p.name} bought a ${SIZE_SHORT[s].toLowerCase()}${s?' tree':''} for ${c} light.`);save();}
+function doGrow(pi,k){if(growWhy(pi,k))return;const p=P(pi),t=G.trees[k],c=GROW[t.size];
+  p.avail[t.size+1]--;returnPiece(p,t.size);t.size++;p.lp-=c;G.used[k]=true;
+  log(`${p.name} grew a ${SIZE_SHORT[t.size].toLowerCase()} tree on ${CELL[k].soil}-leaf soil.`);save();}
+function doPlant(pi,src,k){if(plantWhy(pi,src)||!plantTargets(src).includes(k))return;const p=P(pi);
+  p.avail[0]--;p.lp-=1;G.trees[k]={p:pi,size:0};G.used[src]=true;G.used[k]=true;
+  log(`${p.name} planted a seed on ${CELL[k].soil}-leaf soil.`);save();}
+function doCollect(pi,k){if(collectWhy(pi,k))return;const p=P(pi),soil=CELL[k].soil;
+  p.lp-=4;delete G.trees[k];returnPiece(p,3);const v=takeToken(soil);p.tokens.push(v);G.used[k]=true;
+  log(`${p.name} harvested a large tree on ${soil}-leaf soil for ${v} points.`);save();}
+
+function placeSetup(k){if(!k)return;const pi=G.current,p=P(pi);
+  G.trees[k]={p:pi,size:1};p.avail[1]--;G.setupQ.shift();
+  log(`${p.name} placed a small tree on the edge.`);
+  if(G.setupQ.length){G.current=G.setupQ[0];save();render();kick();}
+  else startRound();}
+const setupTargets=()=>CELLS.filter(c=>c.soil===1&&!G.trees[c.k]).map(c=>c.k);
+
+function startRound(){
+  G.phase='play';G.used={};G.turnIdx=0;G.current=G.first;sel=null;
+  const gains={},byP=G.players.map(()=>0);
+  for(const[k,t]of Object.entries(G.trees)){if(t.size<1||shadowed(k,t.size))continue;gains[k]=t.size;byP[t.p]+=t.size;}
+  G.players.forEach((p,i)=>p.lp=Math.min(20,p.lp+byP[i]));
+  log(`Round ${G.round+1}. Light gathered: `+G.players.map((p,i)=>`${p.name} +${byP[i]}`).join(', ')+'.');
+  save();render();showGains(gains);kick();
+}
+function endTurn(){
+  sel=null;G.turnIdx++;const n=G.players.length;
+  if(G.turnIdx>=n){
+    G.first=(G.first+1)%n;G.round++;
+    if(G.round%6===0)log(`The sun completed revolution ${G.round/6}.`);
+    if(G.round>=G.total)return finish();
+    startRound();
+  }else{G.current=(G.first+G.turnIdx)%n;G.used={};save();render();kick();}
+}
+function finish(){
+  G.phase='over';
+  const res=G.players.map((p,i)=>{const tok=p.tokens.reduce((a,b)=>a+b,0),bonus=Math.floor(p.lp/3);
+    return{i,tok,bonus,total:tok+bonus,onBoard:Object.values(G.trees).filter(t=>t.p===i).length,n:p.tokens.length};});
+  res.sort((a,b)=>b.total-a.total||b.onBoard-a.onBoard);
+  G.result=res;log('The forest settles. Final scores are in.');save();render();showResults();
+}
+
+/* ---------- bot ---------- */
+function legal(pi){const p=P(pi),acts=[];
+  for(let s=0;s<4;s++){const c=nextCost(p,s);if(c!=null&&p.lp>=c)acts.push({t:'buy',s,cost:c});}
+  for(const[k,t]of Object.entries(G.trees)){if(t.p!==pi||G.used[k])continue;
+    if(t.size<3&&!growWhy(pi,k))acts.push({t:'grow',k,size:t.size,cost:GROW[t.size]});
+    if(t.size===3&&!collectWhy(pi,k))acts.push({t:'collect',k,cost:4});
+    if(t.size>=1&&!plantWhy(pi,k))for(const tk of plantTargets(k))acts.push({t:'plant',src:k,k:tk,cost:1});}
+  return acts;}
+function nbrOwn(pi,k){const c=CELL[k];let n=0;for(const[dq,dr]of DIRS){const t=G.trees[key(c.q+dq,c.r+dr)];if(t&&t.p===pi)n++;}return n;}
+function score(pi,a){const p=P(pi),r=G.total-G.round,after=r-1;
+  switch(a.t){
+    case 'collect':{const soil=CELL[a.k].soil,v=peekToken(soil);
+      if(r<=6)return 120+v;
+      if(r<=12&&soil>=3&&p.lp>=9)return 60+v;
+      if(p.avail[3]===0&&nextCost(p,3)==null&&p.lp>=8)return 45+v; // recycle when out of large trees
+      return -1;}
+    case 'grow':{const k=a.size+1,soil=CELL[a.k].soil,feasible=after>=(3-k)+1;
+      if(!feasible)return after-a.cost*1.5;
+      return (k===3?70:35+k*6)+soil*4-a.cost+Math.random();}
+    case 'plant':{const soil=CELL[a.k].soil;if(after<4)return -1;
+      const seeds=Object.values(G.trees).filter(t=>t.p===pi&&t.size===0).length;
+      return 16+soil*5-seeds*14-nbrOwn(pi,a.k)*4+Math.random()*3;}
+    case 'buy':{if(p.avail[a.s]>0)return -1;
+      if(a.s===0)return after>=5?14-a.cost*2:-1;
+      const need=Object.values(G.trees).some(t=>t.p===pi&&t.size===a.s-1)&&after>=(3-a.s)+1;
+      return need?38+a.s*6-a.cost*2:-1;}
+  }return -1;}
+async function runBot(){
+  if(busy)return;busy=true;const id=gameId,pi=G.current;
+  await wait(650);
+  for(let i=0;i<30;i++){
+    if(id!==gameId||G.phase!=='play'||G.current!==pi)break;
+    let best=null,bs=0;for(const a of legal(pi)){const s=score(pi,a);if(s>bs){bs=s;best=a;}}
+    if(!best)break;
+    if(best.t==='buy')doBuy(pi,best.s);else if(best.t==='grow')doGrow(pi,best.k);else if(best.t==='plant')doPlant(pi,best.src,best.k);else doCollect(pi,best.k);
+    render();await wait(620);
+  }
+  busy=false;
+  if(id===gameId&&G.phase==='play'&&G.current===pi)endTurn();
+}
+function botSetupPick(){const opts=setupTargets();let best=null,bs=-1;
+  for(const k of opts){let m=99;for(const kk of Object.keys(G.trees))m=Math.min(m,dist(CELL[k],CELL[kk]));const s=Math.min(m,4)+Math.random()*1.5;if(s>bs){bs=s;best=k;}}
+  return best;}
+
+/* ---------- drawing ---------- */
+function shapes(spi){const sh=SPECIES[spi].shape;
+  if(sh==='round')return '<circle cx="-0.36" cy="-0.22" r="0.44"/><circle cx="0.36" cy="-0.22" r="0.44"/><circle cx="0" cy="-0.62" r="0.5"/>';
+  if(sh==='cone')return '<polygon points="0,-1.3 0.55,-0.4 -0.55,-0.4"/><polygon points="0,-0.95 0.72,0.12 -0.72,0.12"/>';
+  if(sh==='tall')return '<ellipse cx="0" cy="-0.42" rx="0.46" ry="0.84"/>';
+  let s='<circle cx="0" cy="-0.45" r="0.38"/>';for(let i=0;i<5;i++){const a=(-90+72*i)*Math.PI/180;s+=`<circle cx="${(0.4*Math.cos(a)).toFixed(3)}" cy="${(-0.45+0.4*Math.sin(a)).toFixed(3)}" r="0.3"/>`;}return s;}
+function treeInner(spi,size){const col=`var(${SPECIES[spi].v})`;
+  if(size===0)return `<ellipse rx="0.6" ry="0.46" fill="var(--trunk)" stroke="${col}" stroke-width="0.32"/>`;
+  const trunk='<rect x="-0.12" y="-0.05" width="0.24" height="0.8" rx="0.06"/>';
+  return `<g fill="var(--trunk)" stroke="var(--ink)" stroke-width="0.14">${trunk}</g><g fill="var(--ink)" stroke="var(--ink)" stroke-width="0.18" stroke-linejoin="round">${shapes(spi)}</g><g fill="${col}">${shapes(spi)}</g>`;}
+const FS=[10,11,16,21.5];
+function miniTree(spi,size,w=26){return `<svg width="${w}" height="${w*1.15}" viewBox="-1 -1.45 2 2.3" aria-hidden="true"><g transform="scale(${[0.75,0.6,0.8,1][size]}) translate(0 ${size?0.1:-0.3})">${treeInner(spi,size)}</g></svg>`;}
+
+function render(){if(!G)return;renderStatus();renderPlayers();renderBoard();renderTurn();renderHand();renderLog();}
+
+function renderStatus(){
+  const rev=Math.floor(Math.min(G.round,G.total-1)/6),revs=G.total/6,step=G.round%6;
+  let h=G.phase==='setup'?'<span><b>Setting up</b></span>':G.phase==='over'?'<span><b>Game over</b></span>':`<span>Round <b>${G.round+1}</b> of <b>${G.total}</b></span>`;
+  h+=`<span class="revs" title="Sun revolutions">${[...Array(revs)].map((_,i)=>`<i class="${i<rev||G.phase==='over'?'done':''}"></i>`).join('')}</span>`;
+  if(G.phase==='play')h+=`<span class="steps" title="Sun position in this revolution">${[...Array(6)].map((_,i)=>`<i class="${i<=step?'on':''}"></i>`).join('')}</span>`;
+  if(G.cfg.shade)h+='<span>Shade rule on</span>';
+  $('#status').innerHTML=h;}
+
+function renderPlayers(){
+  $('#players').innerHTML=G.players.map((p,i)=>{const pts=p.tokens.reduce((a,b)=>a+b,0);
+    return `<div class="chip ${i===G.current&&G.phase!=='over'?'active':''}">${G.phase==='play'&&i===G.first?'<span class="firsttag">First</span>':''}${miniTree(p.sp,3,24)}
+    <div><div class="nm">${esc(p.name)}</div><div class="st"><span>${SUNI}${p.lp}</span><span>${STARI}${pts}</span></div></div></div>`;}).join('');}
+
+function renderBoard(){
+  const sun=sunIdx(),shade=shadeCells(),cur=G.current,me=P(cur),humanTurn=me.human&&G.phase!=='over';
+  let tg=new Set();
+  if(humanTurn&&G.phase==='setup')tg=new Set(setupTargets());
+  if(humanTurn&&G.phase==='play'&&sel&&sel.mode==='plant')tg=new Set(plantTargets(sel.k));
+  let h='';
+  // board outline
+  const big=[];for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);big.push(`${(S*R3*3.62*Math.cos(a)).toFixed(1)},${(S*R3*3.62*Math.sin(a)).toFixed(1)}`);}
+  h+=`<polygon points="${big.join(' ')}" fill="var(--board-edge)" opacity=".9" stroke-linejoin="round"/>`;
+  for(const c of CELLS){const[x,y]=px(c.q,c.r);
+    const pts=HEX.map(([a,b])=>`${(x+a).toFixed(1)},${(y+b).toFixed(1)}`).join(' ');
+    h+=`<polygon class="cell${tg.has(c.k)?' can':''}" data-k="${c.k}" points="${pts}" fill="var(--soil${c.soil})"/>`;
+    if(shade.has(c.k))h+=`<polygon points="${pts}" fill="var(--shade)" pointer-events="none"/>`;
+    if(!G.trees[c.k]){for(let i=0;i<c.soil;i++){const ox=(i-(c.soil-1)/2)*6;h+=`<circle cx="${(x+ox).toFixed(1)}" cy="${(y+S*0.5).toFixed(1)}" r="1.6" fill="var(--pip)" opacity=".35" pointer-events="none"/>`;}}
+  }
+  for(const k of tg){const[x,y]=px(CELL[k].q,CELL[k].r);h+=`<circle class="tgt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${S*0.62}"/>`;}
+  if(sel&&G.phase==='play'){const c=CELL[sel.k];if(c){const[x,y]=px(c.q,c.r);h+=`<circle class="selring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${S*0.8}"/>`;}}
+  const ts=Object.entries(G.trees).sort((a,b)=>CELL[a[0]].r-CELL[b[0]].r||CELL[a[0]].q-CELL[b[0]].q);
+  for(const[k,t]of ts){const c=CELL[k],[x,y]=px(c.q,c.r),f=FS[t.size];const dim=G.phase==='play'&&t.size>=1&&shadowed(k,t.size);
+    h+=`<g class="tree${dim?' dim':''}" data-k="${k}" transform="translate(${x.toFixed(1)} ${(y+(t.size?0.28*f:0)).toFixed(1)}) scale(${f})">${treeInner(P(t.p).sp,t.size)}</g>`;
+    if(G.phase==='play'&&G.used[k])h+=`<circle class="usedmark" cx="${(x+S*0.55).toFixed(1)}" cy="${(y+S*0.42).toFixed(1)}" r="3.2"/>`;}
+  if(G.phase!=='setup'||true){
+    const[dq,dr]=DIRS[sun],[sx,sy]=px(dq*3.95,dr*3.95);
+    if(G.phase!=='over'&&G.round+1<G.total){const[nq,nr]=DIRS[(sun+1)%6],[gx,gy]=px(nq*3.95,nr*3.95);
+      h+=`<circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="10" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3" opacity=".8"/><text x="${gx.toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="var(--muted)" font-family="var(--font-body)">next</text>`;}
+    let rays='';for(let i=0;i<12;i++){const a=i*30*Math.PI/180;rays+=`<line x1="${(sx+Math.cos(a)*19).toFixed(1)}" y1="${(sy+Math.sin(a)*19).toFixed(1)}" x2="${(sx+Math.cos(a)*(i%2?25:29)).toFixed(1)}" y2="${(sy+Math.sin(a)*(i%2?25:29)).toFixed(1)}"/>`;}
+    h+=`<g class="sunrays" stroke="var(--sun-ray)" stroke-width="3" stroke-linecap="round">${rays}</g><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="15" fill="var(--sun)" stroke="var(--ink)" stroke-width="1.5"/>`;
+  }
+  $('#layer').innerHTML=h;}
+
+function showGains(g){const fx=$('#fx');fx.innerHTML='';
+  for(const[k,n]of Object.entries(g)){const[x,y]=px(CELL[k].q,CELL[k].r);fx.insertAdjacentHTML('beforeend',`<text class="gain" x="${x.toFixed(1)}" y="${(y-S*0.95).toFixed(1)}" text-anchor="middle">+${n}</text>`);}
+  const id=gameId;setTimeout(()=>{if(id===gameId)fx.innerHTML='';},2000);}
+
+function btn(act,label,cost,why){return `<div class="actwrap"><button data-act="${act}" ${why?'disabled':''}><span>${label}</span><span class="cost">${cost} ${SUNI}</span></button>${why?`<small>${why}</small>`:''}</div>`;}
+function renderTurn(){
+  const el=$('#turn');
+  if(G.phase==='over'){el.innerHTML=`<div class="eyebrow">Game over</div><p class="hint">${esc(P(G.result[0].i).name)} grew the richest grove.</p><button class="primary" data-act="results">See final scores</button>`;return;}
+  const pi=G.current,p=P(pi);
+  const head=(eb)=>`<div class="turnhead">${miniTree(p.sp,3,34)}<div class="grow1"><div class="eyebrow">${eb}</div><h2>${esc(p.name)}</h2></div><div class="lp"><b>${p.lp}</b><span>light</span></div></div>`;
+  if(G.phase==='setup'){el.innerHTML=head('Setup')+(p.human?'<p class="hint">Tap a highlighted space on the outer ring to place a small tree.</p>':'<p class="hint">Choosing a spot on the edge…</p>');return;}
+  if(!p.human){el.innerHTML=head('Taking a turn')+'<p class="hint">Watch the board. Each action appears in the log.</p>';return;}
+  let h=head('Your move');
+  if(sel&&G.trees[sel.k]&&G.trees[sel.k].p===pi){
+    const k=sel.k,t=G.trees[k],c=CELL[k];
+    h+=`<div class="cellcard"><div class="cc-title">${SIZE_NAME[t.size]} on ${c.soil}-leaf soil</div>`;
+    if(sel.mode==='plant'){h+=`<p class="hint">Tap a highlighted space to plant a seed. This tree reaches ${t.size} space${t.size>1?'s':''}.</p><div class="btns"><button class="ghost" data-act="cancel">Cancel</button></div></div>`;}
+    else{const b=[];
+      if(t.size<3)b.push(btn('grow',`Grow to ${SIZE_SHORT[t.size+1].toLowerCase()}`,GROW[t.size],growWhy(pi,k)));
+      if(t.size>=1)b.push(btn('plant','Plant a seed',1,plantWhy(pi,k)));
+      if(t.size===3){const v=peekToken(c.soil);b.push(btn('collect',v?`Harvest for ${v} points`:'Harvest (no tokens left)',4,collectWhy(pi,k)));}
+      if(t.size>=1&&shadowed(k,t.size))b.unshift('<p class="hint">This tree is in shade this round and gathered no light.</p>');
+      h+=`<div class="btns">${b.join('')}<button class="ghost" data-act="cancel">Close</button></div></div>`;}
+  }else{sel=null;h+='<p class="hint">Tap one of your trees or seeds to grow it, plant from it, or harvest it. Each space can be used once per turn.</p>';}
+  h+='<button class="primary" data-act="end">End turn</button>';
+  el.innerHTML=h;}
+
+function renderHand(){
+  const pi=G.current,p=P(pi),mine=p.human&&G.phase==='play';
+  let h=`<div class="eyebrow">${esc(p.name)}: hand and store</div><div class="tray">`;
+  for(let s=0;s<4;s++){const c=nextCost(p,s);
+    h+=`<div class="slot"><div class="sz">${SIZE_SHORT[s]}</div>${miniTree(p.sp,s,s?30:22)}<div class="hand">In hand <b>${p.avail[s]}</b></div>
+    <div class="dots" title="Store slots and their prices">${SLOTS[s].map((v,i)=>`<i class="${p.store[s][i]?'f':''}">${v}</i>`).join('')}</div>
+    <button data-act="buy" data-s="${s}" ${!mine||c==null||p.lp<c?'disabled':''}>${c==null?'Sold out':`Buy ${c} ${SUNI}`}</button></div>`;}
+  h+=`</div><p class="subnote">Buying moves a piece into your hand, cheapest first. Pieces you replace or harvest go back to the store. Grow costs: seed→small 1, small→medium 2, medium→large 3.</p>`;
+  $('#hand').innerHTML=h;}
+function renderLog(){$('#log').innerHTML=G.log.slice(0,14).map(l=>`<li>${esc(l)}</li>`).join('');}
+
+/* ---------- modals ---------- */
+function openModal(html){$('#modal').innerHTML=html;$('#overlay').hidden=false;}
+function closeModal(){$('#overlay').hidden=true;}
+function showRules(){openModal(`<h2>How to play</h2>
+<p>Grow trees on a small hex forest while the sun circles it three times. Bigger trees catch more light and throw longer shade. Harvest large trees on rich soil to score.</p>
+<h3>Each round</h3>
+<ul><li><b>Light.</b> The sun steps one corner clockwise. Every tree not in shade earns light: small 1, medium 2, large 3. Seeds earn nothing. You can hold at most 20.</li>
+<li><b>Shade.</b> Trees cast shade away from the sun: small 1 space, medium 2, large 3. A tree in shade still earns light if it is taller than the tree shading it.</li>
+<li><b>Actions.</b> Starting with the first player, each player spends light on any number of actions. Each board space can be used only once per turn.</li></ul>
+<h3>Actions</h3>
+<ul><li><b>Buy</b> a seed or tree from your store, cheapest price first. It goes into your hand.</li>
+<li><b>Plant</b> a seed from your hand for 1 light, up to 1, 2 or 3 spaces from one of your small, medium or large trees. The tree and the new seed each count as used.</li>
+<li><b>Grow</b> one size using a piece from your hand: seed→small 1, small→medium 2, medium→large 3. The old piece returns to your store, or leaves the game if the store is full.</li>
+<li><b>Harvest</b> a large tree for 4 light. Take the top token for its soil: 1 leaf on the edge up to 4 leaves in the center. If that pile is empty, take from the next poorer pile.</li></ul>
+<h3>End</h3>
+<p>After the third revolution, add your tokens plus 1 point per 3 leftover light. Ties go to whoever has more pieces on the board. In a two player game the 4-leaf tokens are removed and the center pays from the 3-leaf pile.</p>
+<div class="rowbtns"><button class="primary" data-act="close">Back to the forest</button></div>`);}
+function showNew(){
+  const seg=(i,h)=>`<div class="seg"><button data-act="seat-h" data-i="${i}" class="${h?'on':''}">Human</button><button data-act="seat-b" data-i="${i}" class="${h?'':'on'}">Bot</button></div>`;
+  openModal(`<h2>New game</h2>
+  <div><div class="eyebrow">Players</div><div class="seg" style="margin-top:6px">${[2,3,4].map(n=>`<button data-act="count" data-n="${n}" class="${ng.seats.length===n?'on':''}">${n}</button>`).join('')}</div></div>
+  <div style="display:grid;gap:8px">${ng.seats.map((s,i)=>`<div class="seat">${miniTree(i,3,26)}<input type="text" id="seat-name-${i}" value="${esc(s.name)}" aria-label="${SPECIES[i].name} player name" maxlength="16">${seg(i,s.human)}</div>`).join('')}</div>
+  <p class="subnote">Several humans share one screen and take turns. The first seat starts.</p>
+  <label class="opt"><input type="checkbox" id="opt-long" ${ng.long?'checked':''}><span>Long game<small>The sun circles four times instead of three.</small></span></label>
+  <label class="opt"><input type="checkbox" id="opt-shade" ${ng.shade?'checked':''}><span>Shade rule<small>You cannot plant or grow on a space that is in shade.</small></span></label>
+  <div class="rowbtns"><button class="ghost" data-act="close">Cancel</button><button class="primary" data-act="start">Start game</button></div>`);}
+function readSeats(){ng.seats.forEach((s,i)=>{const el=document.getElementById('seat-name-'+i);if(el)s.name=el.value.trim()||SPECIES[i].name;});
+  const l=document.getElementById('opt-long'),sh=document.getElementById('opt-shade');if(l)ng.long=l.checked;if(sh)ng.shade=sh.checked;}
+function showResults(){const r=G.result,best=r[0];
+  const winners=r.filter(x=>x.total===best.total&&x.onBoard===best.onBoard);
+  openModal(`<h2>${winners.length>1?'A shared victory':esc(P(best.i).name)+' wins'}</h2>
+  <table class="res"><thead><tr><th>Grove</th><th>Tokens</th><th>Light bonus</th><th>Total</th></tr></thead><tbody>
+  ${r.map(x=>`<tr class="${winners.includes(x)?'win':''}"><td>${esc(P(x.i).name)} <span style="color:var(--muted);font-weight:400">· ${SPECIES[P(x.i).sp].name}</span></td><td>${x.tok} <span style="color:var(--muted)">(${x.n})</span></td><td>${x.bonus}</td><td>${x.total}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="rowbtns"><button class="ghost" data-act="newgame">Change setup</button><button class="primary" data-act="again">Play again</button></div>`);}
+
+/* ---------- input ---------- */
+$('#board').addEventListener('click',e=>{
+  const t=e.target.closest('[data-k]');if(!t||!G||G.phase==='over')return;
+  const k=t.dataset.k,pi=G.current;if(!P(pi).human)return;
+  if(G.phase==='setup'){if(setupTargets().includes(k))placeSetup(k);return;}
+  if(sel&&sel.mode==='plant'&&plantTargets(sel.k).includes(k)){doPlant(pi,sel.k,k);sel=null;render();return;}
+  const tr=G.trees[k];sel=tr&&tr.p===pi?{k,mode:'menu'}:null;render();
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,pi=G?G.current:0;
+  switch(a){
+    case 'rules':showRules();break;
+    case 'newgame':if(G)ng=JSON.parse(JSON.stringify(G.cfg));showNew();break;
+    case 'close':closeModal();break;
+    case 'results':showResults();break;
+    case 'count':{readSeats();const n=+b.dataset.n;while(ng.seats.length<n){const i=ng.seats.length;ng.seats.push({name:SPECIES[i].name+' bot',human:false});}ng.seats.length=n;showNew();break;}
+    case 'seat-h':case 'seat-b':readSeats();ng.seats[+b.dataset.i].human=a==='seat-h';showNew();break;
+    case 'start':readSeats();closeModal();newGame(ng);break;
+    case 'again':closeModal();newGame(G.cfg);break;
+    case 'buy':if(P(pi).human&&G.phase==='play'){doBuy(pi,+b.dataset.s);render();}break;
+    case 'grow':if(sel){doGrow(pi,sel.k);render();}break;
+    case 'plant':if(sel){sel.mode='plant';render();}break;
+    case 'collect':if(sel){doCollect(pi,sel.k);sel=null;render();}break;
+    case 'cancel':sel=null;render();break;
+    case 'end':if(P(pi).human&&G.phase==='play')endTurn();break;
+  }
+});
+$('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&G&&G.phase!=='over')closeModal();});
+
+/* ---------- boot ---------- */
+function start(data){
+  const g=(data&&data.G)||load();
+  if(g){G=g;gameId++;render();if(G.phase==='over')showResults();else kick();}
+  else newGame(ng);
+}
+window.claude?.hot?.snapshot?.(()=>({G}));
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+})();
+</script>
+
+</body>
+</html>
