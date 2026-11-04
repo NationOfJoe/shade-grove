@@ -30,6 +30,8 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           gradle --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk SunwardGrove-${{ github.run_number }}.apk
+          # Same file under a fixed name, so releases/latest/download/SunwardGrove.apk always works
+          cp app/build/outputs/apk/release/app-release.apk SunwardGrove.apk
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -43,5 +45,7 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Sunward Grove build ${{ github.run_number }}
           body: Install SunwardGrove-${{ github.run_number }}.apk on your Android phone. Each build installs over the previous one.
-          files: SunwardGrove-${{ github.run_number }}.apk
+          files: |
+            SunwardGrove-${{ github.run_number }}.apk
+            SunwardGrove.apk
           make_latest: true
